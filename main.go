@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"time"
@@ -25,32 +27,37 @@ func main() {
 
 	memUsageBeforeLoading := getMemoryUsage()
 
-	fileData, err := os.ReadFile(filePath)
+	file, err := os.Open(filePath)
+	fileData := bufio.NewReader(file)
 
 	if err != nil {
 		fmt.Println("Error in file opening")
 		return
 	}
-
 	memUsageAfterLoading := getMemoryUsage()
 
 	urls := []string{}
-	url := []byte{}
 
-	for _, char := range fileData {
-		if char == '\n' {
-			if len(url) != 0 {
-				urls = append(urls, string(url))
-				url = []byte{}
+	for {
+		line, _, err := fileData.ReadLine()
+
+		if err != nil {
+			if err == io.EOF {
+				break
 			}
+			fmt.Println("Error reading file: ", err)
 		} else {
-			url = append(url, char)
+			if len(line) != 0 {
+				urls = append(urls, string(line))
+			}
 		}
 	}
 
+	totalMemUsage := getMemoryUsage()
 	totalFileReadTime := time.Since(fileReadStartTime)
 
 	fmt.Println("Total No.of lines: ", len(urls))
 	fmt.Println("Total time to read the file: ", totalFileReadTime)
 	fmt.Println("Memory Usage: ", (memUsageAfterLoading - memUsageBeforeLoading))
+	fmt.Println("Total memory usage: ", (totalMemUsage - memUsageBeforeLoading))
 }

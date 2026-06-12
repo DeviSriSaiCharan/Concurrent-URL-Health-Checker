@@ -35,3 +35,14 @@ In Go `string` are immutable, it means its bytes cannot be modified
 | Number of URLs | 100000 |
 | Average time | 30 milliseconds |
 | Memory Usage | 2.4768 MB ~ 2Mb |
+
+## PHASE 3: Optimized File Reading
+Before we are loading the entire file data into memory so that's the reason the memory usage for reading teh file is `2Mb` which the size fo the file.
+- I have changed `os.ReadFile()` to `os.Open()` it gives an pointer to that file instead of loading the entire data, using that pointer we read the data line by line.
+
+### Benchmarks
+| Metric | Value |
+|---------|---------|
+| Number of URLs | 100000 |
+| Average time | 12.55 milliseconds |
+| Memory Usage | 0.00402 ~ 4Kb |
