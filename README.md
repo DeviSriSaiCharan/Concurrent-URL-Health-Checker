@@ -66,3 +66,69 @@ Making request to each api endpoint which are fetched from the file.
 | Average time | 23.9 m |
 
 ![API Calling benchamark](images/image_3.png)
+
+## Phase 2: Parallelize Health Checking Job
+Before we are sending request to each API endpoint sequentially, since all are independent jobs, we can split this work using `goroutines` which create a lightweight threads, all those run parallely.
+
+![API Calling benchamark](images/image_4.png)
+
+### Benchmarks
+| Metric | Value |
+|---------|---------|
+| Number of URLs | 116 |
+| Average time | 3 sec |
+
+![API Calling benchamark](images/image_5.png)
+
+### Benchmarks
+| Metric | Value |
+|---------|---------|
+| Number of URLs | 100000 |
+| Average time | 1.21 m |
+
+![API Calling benchamark](images/image_6.png)
+
+# Architecture
+
+```mermaid
+flowchart TD
+
+    A[Start Main Goroutine]
+    B[Read urls_big.txt]
+    C[Load URLs into Memory]
+    D[Create Results Channel]
+    E[Create WaitGroup]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+
+    E --> F[Spawn N Worker Goroutines]
+
+    subgraph Workers
+        W1[Worker 1<br/>checkHealthStatus]
+        W2[Worker 2<br/>checkHealthStatus]
+        W3[Worker 3<br/>checkHealthStatus]
+        WN[Worker N<br/>checkHealthStatus]
+    end
+
+    F --> W1
+    F --> W2
+    F --> W3
+    F --> WN
+
+    W1 --> R[(Shared Results Channel)]
+    W2 --> R
+    W3 --> R
+    WN --> R
+
+    W1 -.-> WG[WaitGroup]
+    W2 -.-> WG
+    W3 -.-> WG
+    WN -.-> WG
+
+    WG --> J[wg.Wait]
+    J --> K[Close Results Channel]
+    K --> L[Print Statistics]
+```

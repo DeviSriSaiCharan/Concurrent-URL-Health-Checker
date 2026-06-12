@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/DeviSriSaiCharan/GoLang-Learnings/checker"
@@ -30,15 +31,41 @@ func main() {
 
 	filePath := "./urls_big.txt"
 
-	file, err := os.Open(filePath)
-	fileData := bufio.NewReader(file)
+	urls, err := getUrlsFromTextFile(filePath)
 
 	if err != nil {
-		fmt.Println("Error in file opening")
 		return
 	}
 
+	var wg sync.WaitGroup
+
+	results := make(chan checker.HealthResult, len(urls))
+	healthCheckerStartTime := time.Now()
+
+	for _, url := range urls {
+		wg.Add(1)
+		go checkHealthStatus(url, results, &wg)
+	}
+
+	wg.Wait()
+
+	healthCheckerEndTime := time.Since(healthCheckerStartTime)
+
+	close(results)
+
+	fmt.Printf("Total time to check health for %d urls: %v\n", len(results), healthCheckerEndTime)
+}
+
+func getUrlsFromTextFile(filePath string) ([]string, error) {
+	file, err := os.Open(filePath)
+	fileData := bufio.NewReader(file)
+
 	urls := []string{}
+
+	if err != nil {
+		fmt.Println("Error in file opening")
+		return urls, err
+	}
 
 	for {
 		line, _, err := fileData.ReadLine()
@@ -55,15 +82,13 @@ func main() {
 		}
 	}
 
-	results := []checker.HealthResult{}
-	healthCheckerStartTime := time.Now()
+	return urls, nil
+}
 
-	for _, url := range urls {
-		result := checker.CheckUrlHealth(url, client)
-		results = append(results, result)
-	}
+func checkHealthStatus(url string, results chan<- checker.HealthResult, wg *sync.WaitGroup) {
+	defer wg.Done()
 
-	healthCheckerEndTime := time.Since(healthCheckerStartTime)
+	result := checker.CheckUrlHealth(url, client)
 
-	fmt.Printf("Total time to check health for %d urls: %v\n", len(urls), healthCheckerEndTime)
+	results <- result
 }
