@@ -15,4 +15,23 @@ I am using `os.ReadFile()` to read the entire file and parsed the content byte b
 | Average time | 814 microseconds |
 | Memory Usage | 0.0028762 MB ~ 2Kb |
 
+| Metric | Value |
+|---------|---------|
+| Number of URLs | 100000 |
+| Average time | 100 milliseconds |
+| Memory Usage | 2.4768 MB ~ 2Mb |
+
 ![File Reading Benchmarks](images/Screenshot%202026-06-12%20at%2010.33.18 AM.png)
+
+
+## Phase 2: Changed the URL from string to byte type
+In Go `string` are immutable, it means its bytes cannot be modified
+ - Before i am using `string` type for the `url` variables, so when ever i append a new character to it, go create a new string and copy all the values into the new string and discards the old string
+- `slices` are mutable so when we append data to `byte[]` array it dont create a new byte[] everytime until capacity runs out.
+
+### Benchmarks
+| Metric | Value |
+|---------|---------|
+| Number of URLs | 100000 |
+| Average time | 30 milliseconds |
+| Memory Usage | 2.4768 MB ~ 2Mb |

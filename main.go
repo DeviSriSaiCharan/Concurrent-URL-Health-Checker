@@ -19,7 +19,7 @@ func getMemoryUsage() float64 {
 
 func main() {
 
-	filePath := "urls.txt"
+	filePath := "./urls_big.txt"
 
 	fileReadStartTime := time.Now()
 
@@ -35,16 +35,16 @@ func main() {
 	memUsageAfterLoading := getMemoryUsage()
 
 	urls := []string{}
-	url := ""
+	url := []byte{}
 
 	for _, char := range fileData {
 		if char == '\n' {
-			if url != "" {
-				urls = append(urls, url)
+			if len(url) != 0 {
+				urls = append(urls, string(url))
+				url = []byte{}
 			}
-			url = ""
 		} else {
-			url += string(char)
+			url = append(url, char)
 		}
 	}
 
