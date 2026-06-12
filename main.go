@@ -4,10 +4,17 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"runtime"
 	"time"
+
+	"github.com/DeviSriSaiCharan/GoLang-Learnings/checker"
 )
+
+var client http.Client = http.Client{
+	Timeout: 3 * time.Second,
+}
 
 func getMemoryUsage() float64 {
 	var m runtime.MemStats
@@ -23,10 +30,6 @@ func main() {
 
 	filePath := "./urls_big.txt"
 
-	fileReadStartTime := time.Now()
-
-	memUsageBeforeLoading := getMemoryUsage()
-
 	file, err := os.Open(filePath)
 	fileData := bufio.NewReader(file)
 
@@ -34,7 +37,6 @@ func main() {
 		fmt.Println("Error in file opening")
 		return
 	}
-	memUsageAfterLoading := getMemoryUsage()
 
 	urls := []string{}
 
@@ -53,11 +55,15 @@ func main() {
 		}
 	}
 
-	totalMemUsage := getMemoryUsage()
-	totalFileReadTime := time.Since(fileReadStartTime)
+	results := []checker.HealthResult{}
+	healthCheckerStartTime := time.Now()
 
-	fmt.Println("Total No.of lines: ", len(urls))
-	fmt.Println("Total time to read the file: ", totalFileReadTime)
-	fmt.Println("Memory Usage: ", (memUsageAfterLoading - memUsageBeforeLoading))
-	fmt.Println("Total memory usage: ", (totalMemUsage - memUsageBeforeLoading))
+	for _, url := range urls {
+		result := checker.CheckUrlHealth(url, client)
+		results = append(results, result)
+	}
+
+	healthCheckerEndTime := time.Since(healthCheckerStartTime)
+
+	fmt.Printf("Total time to check health for %d urls: %v\n", len(urls), healthCheckerEndTime)
 }

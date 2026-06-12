@@ -46,3 +46,23 @@ Before we are loading the entire file data into memory so that's the reason the 
 | Number of URLs | 100000 |
 | Average time | 12.55 milliseconds |
 | Memory Usage | 0.00402 ~ 4Kb |
+
+
+## Phase 1: Checking URLs Health
+Making request to each api endpoint which are fetched from the file.
+
+### Benchmarks
+| Metric | Value |
+|---------|---------|
+| Number of URLs | 116 |
+| Average time | 1.28 m |
+
+![API Calling benchamark](images/image_2.png)
+
+### Benchmarks
+| Metric | Value |
+|---------|---------|
+| Number of URLs | 100000 |
+| Average time | 23.9 m |
+
+![API Calling benchamark](images/image_3.png)
