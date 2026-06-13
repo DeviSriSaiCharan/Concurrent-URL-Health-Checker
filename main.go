@@ -131,17 +131,11 @@ func printResults(results <-chan checker.HealthResult) {
 			coloredStatus = color.New(color.FgRed, color.Bold).Sprint(status)
 		}
 
-		errorMessage := ""
-
-		if result.Err != nil {
-			errorMessage = result.Err.Error()
-		}
-
 		outputResult := []string{
 			strconv.Itoa(i),
 			result.Url,
 			coloredStatus,
-			errorMessage,
+			strconv.FormatInt(result.ResponseTime.Milliseconds(), 10) + " ms",
 		}
 
 		data = append(data, outputResult)
@@ -184,7 +178,7 @@ func printResults(results <-chan checker.HealthResult) {
 			"#",
 			"URL",
 			"Status Code",
-			"Error Message",
+			"Response Time (ms)",
 		)
 		table.Bulk(pageData)
 		table.Render()
