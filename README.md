@@ -70,7 +70,7 @@ Making request to each api endpoint which are fetched from the file.
 ## Phase 2: Parallelize Health Checking Job
 Before we are sending request to each API endpoint sequentially, since all are independent jobs, we can split this work using `goroutines` which create a lightweight threads, all those run parallely.
 
-![API Calling benchamark](images/image_4.png)
+![Architecture](images/image_4.png)
 
 ### Benchmarks
 | Metric | Value |
@@ -132,3 +132,36 @@ flowchart TD
     J --> K[Close Results Channel]
     K --> L[Print Statistics]
 ```
+
+## Phase 3: Fixed workers and reuse the workers
+Before we are creating `goroutine` for each url, if there are `1,00,000` urls it created that many goroutines, but this can create memory overhead, cause each goroutine starts with `2Kb` of stack size and dynamically it increases the size, therefore
+```
+2Kb * 100000 = 200MB
+```
+and it creats `scheduling overhead`.
+
+Go does not create 100,000 OS threads.
+
+Instead, Go uses its scheduler based on the G-M-P model:
+
+- G (Goroutine) = your function execution
+- M (Machine) = an OS thread
+- P (Processor) = a logical scheduler context
+
+`runtime.GOMAXPROCS(0)` gave `8` -> it means Go can execute 8 threads simultaneously
+
+![Architecture](images/image_8.png)
+
+![Trend of Time to ping Urls with increasing worker](images/image_7.png)
+
+### Benchmarks
+| Metric | Value |
+|---------|---------|
+| Number of URLs | 116 |
+| Average time | 3 s |
+
+### Benchmarks
+| Metric | Value |
+|---------|---------|
+| Number of URLs | 100000 |
+| Average time | 27s |

@@ -29,7 +29,8 @@ func getMemoryUsage() float64 {
 
 func main() {
 
-	filePath := "./urls_big.txt"
+	filePath := "./urls.txt"
+	workers := 150
 
 	urls, err := getUrlsFromTextFile(filePath)
 
@@ -40,12 +41,20 @@ func main() {
 	var wg sync.WaitGroup
 
 	results := make(chan checker.HealthResult, len(urls))
+	jobs := make(chan string, len(urls))
+
 	healthCheckerStartTime := time.Now()
 
-	for _, url := range urls {
+	for i := range workers {
 		wg.Add(1)
-		go checkHealthStatus(url, results, &wg)
+		go worker(i, jobs, results, &wg)
 	}
+
+	for _, url := range urls {
+		jobs <- url
+	}
+
+	close(jobs)
 
 	wg.Wait()
 
@@ -85,10 +94,12 @@ func getUrlsFromTextFile(filePath string) ([]string, error) {
 	return urls, nil
 }
 
-func checkHealthStatus(url string, results chan<- checker.HealthResult, wg *sync.WaitGroup) {
+func worker(id int, jobs <-chan string, results chan<- checker.HealthResult, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	result := checker.CheckUrlHealth(url, client)
+	for url := range jobs {
+		result := checker.CheckUrlHealth(url, client)
+		results <- result
+	}
 
-	results <- result
 }
