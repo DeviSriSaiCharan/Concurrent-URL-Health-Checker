@@ -78,7 +78,6 @@ func main() {
 
 func getUrlsFromTextFile(filePath string) ([]string, error) {
 	file, err := os.Open(filePath)
-	fileData := bufio.NewReader(file)
 
 	defer file.Close()
 
@@ -88,6 +87,8 @@ func getUrlsFromTextFile(filePath string) ([]string, error) {
 		fmt.Println("Error in file opening")
 		return urls, err
 	}
+
+	fileData := bufio.NewReader(file)
 
 	for {
 		line, _, err := fileData.ReadLine()
