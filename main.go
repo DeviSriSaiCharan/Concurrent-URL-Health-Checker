@@ -36,16 +36,7 @@ func getMemoryUsage() float64 {
 
 func main() {
 
-	fp, w := getFLags()
-
-	if fp == "" {
-		fmt.Println("Please provide a valid file path using the -f flag.")
-		return
-	}
-	if w <= 0 {
-		fmt.Println("Please provide a valid number of workers using the -workers flag.")
-		return
-	}
+	fp, w, retryCount := getFLags()
 
 	filePath := fp
 	workers := w
@@ -65,7 +56,7 @@ func main() {
 
 	for i := range workers {
 		wg.Add(1)
-		go worker(i, jobs, results, &wg)
+		go worker(i, retryCount, jobs, results, &wg)
 	}
 
 	for _, url := range urls {
@@ -114,12 +105,23 @@ func getUrlsFromTextFile(filePath string) ([]string, error) {
 	return urls, nil
 }
 
-func worker(id int, jobs <-chan string, results chan<- checker.HealthResult, wg *sync.WaitGroup) {
+func worker(id, retryCount int, jobs <-chan string, results chan<- checker.HealthResult, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for url := range jobs {
-		result := checker.CheckUrlHealth(url, client)
-		results <- result
+
+		for attempt := 1; attempt <= retryCount; attempt++ {
+			result := checker.CheckUrlHealth(url, client)
+
+			if result.StatusCode < 500 {
+				results <- result
+				break
+			}
+
+			if attempt == retryCount {
+				results <- result
+			}
+		}
 	}
 
 }
@@ -229,11 +231,12 @@ func printResults(results <-chan checker.HealthResult) {
 	}
 }
 
-func getFLags() (string, int) {
+func getFLags() (string, int, int) {
 	filePath := flag.String("f", "./urls.txt", "File path of the URLs")
-	workers := flag.Int("workers", 5, "Number of worker goroutines")
+	workers := flag.Int("workers", 150, "Number of worker goroutines")
+	retryCount := flag.Int("retry", 3, "Number of times to retry")
 
 	flag.Parse()
 
-	return *filePath, *workers
+	return *filePath, *workers, *retryCount
 }
