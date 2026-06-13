@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,8 +36,19 @@ func getMemoryUsage() float64 {
 
 func main() {
 
-	filePath := "./urls.txt"
-	workers := 150
+	fp, w := getFLags()
+
+	if fp == "" {
+		fmt.Println("Please provide a valid file path using the -f flag.")
+		return
+	}
+	if w <= 0 {
+		fmt.Println("Please provide a valid number of workers using the -workers flag.")
+		return
+	}
+
+	filePath := fp
+	workers := w
 
 	urls, err := getUrlsFromTextFile(filePath)
 
@@ -215,4 +227,13 @@ func printResults(results <-chan checker.HealthResult) {
 			fmt.Println("Invalid input. Please enter 'n', 'p', or 'q'.")
 		}
 	}
+}
+
+func getFLags() (string, int) {
+	filePath := flag.String("f", "./urls.txt", "File path of the URLs")
+	workers := flag.Int("workers", 5, "Number of worker goroutines")
+
+	flag.Parse()
+
+	return *filePath, *workers
 }
