@@ -80,6 +80,8 @@ func getUrlsFromTextFile(filePath string) ([]string, error) {
 	file, err := os.Open(filePath)
 	fileData := bufio.NewReader(file)
 
+	defer file.Close()
+
 	urls := []string{}
 
 	if err != nil {
