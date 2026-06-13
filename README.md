@@ -1,8 +1,6 @@
 # Concurrent URL Health Checker
 
-<video width="100%" controls>
-  <source src="./images/cursorful-video-1781357667481.mp4" type="video/mp4">
-</video>
+https://github.com/user-attachments/assets/abc7f9e8-a222-450e-b968-21cc972e5ff4
 
 A lightweight and efficient URL Health Checker built with Go that performs concurrent health checks on multiple websites and APIs. The application leverages Go's goroutines and channels to send parallel HTTP requests, significantly reducing the time required to monitor large sets of URLs.
 
