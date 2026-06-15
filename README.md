@@ -1,4 +1,4 @@
-# Concurrent URL Health Checker
+# Concurrent URL Health Checker CLI
 
 
 
