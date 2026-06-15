@@ -11,11 +11,14 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/fatih/color"
 
 	"github.com/DeviSriSaiCharan/GoLang-Learnings/checker"
+	loader "github.com/DeviSriSaiCharan/GoLang-Learnings/cli"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/olekukonko/tablewriter"
 	"golang.org/x/term"
 )
@@ -51,12 +54,28 @@ func main() {
 
 	results := make(chan checker.HealthResult, len(urls))
 	jobs := make(chan string, len(urls))
+	progressChan := make(chan int, len(urls))
+
+	model := loader.New(len(urls), progressChan)
+	var completed atomic.Int64
+	p := tea.NewProgram(model)
+
+	loaderDone := make(chan struct{})
+	go func() {
+		defer close(loaderDone)
+
+		_, err := p.Run()
+
+		if err != nil {
+			fmt.Println("Error running loader: ", err)
+		}
+	}()
 
 	healthCheckerStartTime := time.Now()
 
 	for i := range workers {
 		wg.Add(1)
-		go worker(i, retryCount, jobs, results, &wg)
+		go worker(i, retryCount, jobs, results, progressChan, &wg, &completed)
 	}
 
 	for _, url := range urls {
@@ -67,11 +86,22 @@ func main() {
 
 	wg.Wait()
 
+	// Execution blocks here until loaderDone is closed.
+	//
+	// The loader goroutine is running p.Run().
+	//
+	// When Bubble Tea receives tea.Quit, p.Run() returns.
+	// After p.Run() returns, the deferred close(loaderDone) executes.
+	//
+	// Closing loaderDone unblocks this receive operation,
+	// allowing main to continue.
+	<-loaderDone
+
 	healthCheckerEndTime := time.Since(healthCheckerStartTime)
 
-	close(results)
-
 	fmt.Printf("Total time to check health for %d urls: %v\n", len(results), healthCheckerEndTime)
+
+	close(results)
 
 	printResults(results)
 }
@@ -79,14 +109,14 @@ func main() {
 func getUrlsFromTextFile(filePath string) ([]string, error) {
 	file, err := os.Open(filePath)
 
-	defer file.Close()
-
 	urls := []string{}
 
 	if err != nil {
 		fmt.Println("Error in file opening")
 		return urls, err
 	}
+
+	defer file.Close()
 
 	fileData := bufio.NewReader(file)
 
@@ -108,7 +138,7 @@ func getUrlsFromTextFile(filePath string) ([]string, error) {
 	return urls, nil
 }
 
-func worker(id, retryCount int, jobs <-chan string, results chan<- checker.HealthResult, wg *sync.WaitGroup) {
+func worker(id, retryCount int, jobs <-chan string, results chan<- checker.HealthResult, progressChan chan<- int, wg *sync.WaitGroup, completed *atomic.Int64) {
 	defer wg.Done()
 
 	for url := range jobs {
@@ -118,11 +148,15 @@ func worker(id, retryCount int, jobs <-chan string, results chan<- checker.Healt
 
 			if result.StatusCode < 500 {
 				results <- result
+				n := completed.Add(1)
+				progressChan <- int(n)
 				break
 			}
 
 			if attempt == retryCount {
 				results <- result
+				n := completed.Add(1)
+				progressChan <- int(n)
 			}
 		}
 	}
